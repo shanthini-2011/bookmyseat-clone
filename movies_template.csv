@@ -1,0 +1,2 @@
+Name,Rating,Cast,Description,Trailer URL,Genres (comma separated),Languages (comma separated),Image (Leave blank or add filename if uploaded manually)
+"Example Movie","8.5","Actor 1, Actor 2","This is a sample description.","https://www.youtube.com/watch?v=example","Action, Drama","Tamil, English",""

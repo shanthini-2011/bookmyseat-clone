@@ -1,0 +1,204 @@
+{% extends "users/basic.html" %}
+{% block title %}My Profile - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <!-- Profile Info Card (Left) -->
+    <div class="col-lg-4 mb-4 mb-lg-0">
+      <div class="glass-panel p-4 text-center profile-card tilt-enabled" style="border-top: 4px solid; border-image: var(--gradient-cool) 1;">
+        <div class="glow-ring mx-auto mb-4" style="width: 100px; height: 100px; border-radius: 50%; background: rgba(14, 165, 233, 0.1); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);">
+          <i class="fas fa-user-astronaut fa-4x" style="background: var(--gradient-cool); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+        </div>
+        <h3 class="text-white font-weight-bold mb-1">{{ user.username }}</h3>
+        <p class="mb-4" style="color: var(--text-muted); font-size: 14px;">{{ user.email }}</p>
+        <div class="d-flex justify-content-center gap-2">
+          <a href="{% url 'reset-password' %}" class="btn btn-premium-secondary btn-sm py-2 px-4" style="font-size: 13px;">
+            <i class="fas fa-key mr-2"></i> Reset Password
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Profile Update Form & Bookings List (Right) -->
+    <div class="col-lg-8">
+      <!-- Update details Glass panel -->
+      <div class="glass-panel p-4 mb-4">
+        <h4 class="text-white section-title mb-4" style="font-weight: 800;">
+          <i class="fas fa-user-edit mr-2" style="color: var(--accent-pink);"></i> Update Details
+        </h4>
+        <form method="POST">
+          {% csrf_token %}
+          <div class="row">
+            {% for field in u_form %}
+              <div class="col-md-6 form-group mb-3">
+                <label for="{{ field.id_for_label }}" class="mb-2" style="color: var(--text-muted); font-size: 13px;">
+                  {{ field.label }}
+                </label>
+                <input 
+                  type="{% if field.name == 'email' %}email{% else %}text{% endif %}" 
+                  name="{{ field.name }}" 
+                  value="{{ field.value|default_if_none:'' }}" 
+                  id="{{ field.id_for_label }}" 
+                  class="form-control form-glass" 
+                  required
+                >
+                {% if field.errors %}
+                  <small class="d-block mt-1" style="color: #fca5a5; font-size: 12px;"><i class="fas fa-exclamation-circle mr-1"></i>{{ field.errors.0 }}</small>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+          <button class="btn btn-premium-primary px-4 mt-3" type="submit">
+            <i class="fas fa-save mr-2"></i> Save Changes
+          </button>
+        </form>
+      </div>
+      
+      <!-- Bookings Glass panel -->
+      <div class="glass-panel p-4">
+        <h4 class="text-white section-title mb-4" style="font-weight: 800;">
+          <i class="fas fa-ticket-alt mr-2" style="color: var(--success-color);"></i> Booking Receipts
+        </h4>
+        
+        {% if bookings or event_bookings %}
+          <div class="row">
+            <!-- Movie Bookings -->
+            {% for booking in bookings %}
+              <div class="col-md-12 mb-4 ticket-item">
+                <div id="ticket-{{ booking.id }}" class="d-flex flex-column flex-md-row" style="background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; position: relative;">
+                  <!-- Ticket Info Side -->
+                  <div class="p-4 d-flex flex-column justify-content-center" style="flex: 1; color: #111;">
+                    <div class="d-flex align-items-center mb-2">
+                      <span class="badge badge-danger mr-2" style="background: var(--accent-pink);">ADMIT ONE</span>
+                      <small style="color: #666; font-weight: bold; letter-spacing: 1px;">BOOKMYSEAT PREMIUM</small>
+                    </div>
+                    <h4 class="font-weight-bold mb-1" style="color: #111; font-size: 22px;">{{ booking.movie.name }}</h4>
+                    <p class="mb-3" style="font-size: 14px; color: #555;"><i class="fas fa-map-marker-alt mr-1" style="color: #888;"></i> {{ booking.theater.name }}</p>
+                    
+                    <div class="d-flex justify-content-between mt-2 p-3" style="background: #f8f9fa; border-radius: 8px; border: 1px solid #eee;">
+                      <div>
+                        <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Date & Time</small>
+                        <div style="font-weight: 800; font-size: 14px; color: #333;">{{ booking.booked_at|date:"M d, Y - H:i" }}</div>
+                      </div>
+                      <div class="text-right">
+                        <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Seat No</small>
+                        <div style="font-weight: 900; font-size: 16px; color: var(--danger-color);">{{ booking.seat.seat_number }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Perforation Middle -->
+                  <div class="d-none d-md-flex flex-column justify-content-between align-items-center" style="width: 2px; border-left: 2px dashed #ccc; position: relative; background: #ffffff;">
+                     <div style="position: absolute; top: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+                     <div style="position: absolute; bottom: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+                  </div>
+                  
+                  <!-- Ticket QR Code Side -->
+                  <div class="p-4 d-flex flex-column align-items-center justify-content-center text-center" style="background: #fdfdfd; min-width: 180px; border-left: 1px solid #eee;">
+                    <div class="mb-3">
+                      {% if booking.qr_code %}
+                        <img src="{{ booking.qr_code.url }}" alt="QR Code" width="85" height="85" style="border: 1px solid #ddd; padding: 4px; border-radius: 8px;">
+                      {% else %}
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Ticket-{{ booking.id }}-{{ booking.seat.seat_number }}&color=111111&bgcolor=ffffff" alt="QR Code" width="85" height="85" style="border: 1px solid #ddd; padding: 4px; border-radius: 8px;">
+                      {% endif %}
+                    </div>
+                    <div style="font-weight: 900; font-size: 24px; color: #111; margin-bottom: 10px;">${{ booking.price|floatformat:2 }}</div>
+                    <span style="font-size: 10px; color: #999; font-family: monospace; margin-bottom: 15px;">
+                      ID: {{ booking.payment_intent_id|truncatechars:12|default:"OFLN-TKT" }}
+                    </span>
+                    <button type="button" class="btn btn-outline-dark btn-sm px-4 download-btn" onclick="downloadTicket('ticket-{{ booking.id }}')" style="border-radius: 30px; font-weight: bold; font-size: 12px; letter-spacing: 0.5px; border-width: 2px;">
+                      <i class="fas fa-download mr-1"></i> DOWNLOAD PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+
+            <!-- Event Bookings -->
+            {% for booking in event_bookings %}
+              <div class="col-md-12 mb-4 ticket-item">
+                <div id="event-ticket-{{ booking.id }}" class="d-flex flex-column flex-md-row" style="background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; position: relative;">
+                  <!-- Ticket Info Side -->
+                  <div class="p-4 d-flex flex-column justify-content-center" style="flex: 1; color: #111;">
+                    <div class="d-flex align-items-center mb-2">
+                      <span class="badge badge-success mr-2" style="background: var(--success-color);">LIVE EVENT</span>
+                      <small style="color: #666; font-weight: bold; letter-spacing: 1px;">BOOKMYSEAT EVENTS</small>
+                    </div>
+                    <h4 class="font-weight-bold mb-1" style="color: #111; font-size: 22px;">{{ booking.event.name }}</h4>
+                    <p class="mb-3" style="font-size: 14px; color: #555;"><i class="fas fa-map-marker-alt mr-1" style="color: #888;"></i> {{ booking.event.location }}</p>
+                    
+                    <div class="d-flex justify-content-between mt-2 p-3" style="background: #f8f9fa; border-radius: 8px; border: 1px solid #eee;">
+                      <div>
+                        <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Date & Time</small>
+                        <div style="font-weight: 800; font-size: 14px; color: #333;">{{ booking.event.date|date:"M d, Y - H:i" }}</div>
+                      </div>
+                      <div class="text-right">
+                        <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Quantity</small>
+                        <div style="font-weight: 900; font-size: 16px; color: var(--success-color);">{{ booking.quantity }} Tickets</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Perforation Middle -->
+                  <div class="d-none d-md-flex flex-column justify-content-between align-items-center" style="width: 2px; border-left: 2px dashed #ccc; position: relative; background: #ffffff;">
+                     <div style="position: absolute; top: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+                     <div style="position: absolute; bottom: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+                  </div>
+                  
+                  <!-- Ticket QR Code Side -->
+                  <div class="p-4 d-flex flex-column align-items-center justify-content-center text-center" style="background: #fdfdfd; min-width: 180px; border-left: 1px solid #eee;">
+                    <div class="mb-3">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Event-{{ booking.id }}-{{ booking.event.name }}&color=111111&bgcolor=ffffff" alt="QR Code" width="85" height="85" style="border: 1px solid #ddd; padding: 4px; border-radius: 8px;">
+                    </div>
+                    <div style="font-weight: 900; font-size: 24px; color: #111; margin-bottom: 10px;">${{ booking.total_price|floatformat:2 }}</div>
+                    <span style="font-size: 10px; color: #999; font-family: monospace; margin-bottom: 15px;">
+                      BOOKING: #EVT-{{ booking.id }}
+                    </span>
+                    <button type="button" class="btn btn-outline-dark btn-sm px-4 download-btn" onclick="downloadTicket('event-ticket-{{ booking.id }}')" style="border-radius: 30px; font-weight: bold; font-size: 12px; letter-spacing: 0.5px; border-width: 2px;">
+                      <i class="fas fa-download mr-1"></i> DOWNLOAD PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5">
+            <div class="glow-ring mb-3" style="display: inline-flex;">
+              <i class="fas fa-ticket-alt fa-3x" style="color: var(--text-dim);"></i>
+            </div>
+            <p class="lead mb-0" style="color: var(--text-muted); font-size: 15px;">No booking tickets found. Ready for your next film or event?</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  function downloadTicket(ticketId) {
+    const element = document.getElementById(ticketId);
+    
+    // Temporarily hide the download button from the PDF output
+    const btn = element.querySelector('.download-btn');
+    if (btn) btn.style.display = 'none';
+
+    const opt = {
+      margin:       10,
+      filename:     ticketId + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollY: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Restore styles
+      if (btn) btn.style.display = 'inline-block';
+    });
+  }
+</script>
+{% endblock %}

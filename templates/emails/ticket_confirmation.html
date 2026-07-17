@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your E-Ticket Confirmation</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
+      margin: 0; padding: 20px;
+    }
+    .ticket-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      border: 1px solid #e5e7eb;
+    }
+    .ticket-header {
+      background: #e50914;
+      color: #ffffff;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .ticket-header h1 {
+      margin: 0; font-size: 24px; font-weight: 700;
+    }
+    .ticket-body {
+      padding: 30px 20px;
+    }
+    .booking-summary {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+    .summary-row:last-child {
+      margin-bottom: 0;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+      font-weight: bold;
+    }
+    .label {
+      color: #6b7280;
+    }
+    .value {
+      color: #111827;
+      text-align: right;
+    }
+    .ticket-footer {
+      background: #f3f4f6;
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: #9ca3af;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="ticket-container">
+    <div class="ticket-header">
+      <h1>Booking Confirmed!</h1>
+      <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Thank you for booking with BookMySeat</p>
+    </div>
+    
+    <div class="ticket-body">
+      <p style="font-size: 16px; margin-top: 0;">Hi <strong>{{ booking.user.username }}</strong>,</p>
+      <p style="font-size: 15px; line-height: 1.5; color: #4b5563;">
+        Your seat booking has been successfully finalized. Please present this e-ticket receipt at the theater entrance.
+      </p>
+      
+      <div class="booking-summary">
+        <div class="summary-row">
+          <span class="label">Booking ID:</span>
+          <span class="value">#{{ booking.id }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Movie Name:</span>
+          <span class="value" style="font-weight: 600; color: #e50914;">{{ booking.movie.name }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Theater Location:</span>
+          <span class="value">{{ booking.theater.name }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Show Time:</span>
+          <span class="value">{{ booking.theater.time|date:"d M, Y - H:i" }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Seat Number:</span>
+          <span class="value" style="font-weight: bold; color: #111827;">{{ booking.seat.seat_number }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Payment ID:</span>
+          <span class="value" style="font-family: monospace; font-size: 13.5px;">{{ booking.payment_intent_id|default:"STRIPE_PR_SECURE" }}</span>
+        </div>
+        
+        {% if booking.food_items.exists %}
+        <div style="margin: 15px 0; border-top: 1px dashed #d1d5db; padding-top: 15px;">
+          <h4 style="margin: 0 0 10px 0; color: #4b5563; font-size: 14px;">Food & Beverages Add-ons</h4>
+          {% for item in booking.food_items.all %}
+          <div class="summary-row" style="margin-bottom: 6px; font-size: 13.5px;">
+            <span class="label">{{ item.quantity }}x {{ item.food_item.name }}</span>
+            <span class="value">${{ item.subtotal|floatformat:2 }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="summary-row">
+          <span class="label">Total Paid:</span>
+          <span class="value" style="color: #10b981; font-size: 18px;">${{ booking.price|floatformat:2 }}</span>
+        </div>
+      </div>
+      
+      <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
+        Note: Tickets are non-refundable and subject to cinema theater terms. Keep this copy secure.
+      </p>
+    </div>
+    
+    <div class="ticket-footer">
+      &copy; 2026 BookMySeat Inc. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

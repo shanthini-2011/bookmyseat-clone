@@ -1,0 +1,119 @@
+{% extends 'users/basic.html' %}
+{% load static %}
+
+{% block title %}Booking Successful - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="glass-panel p-5 text-center" style="border-radius: 20px; max-width: 600px; width: 100%;">
+    
+    <!-- Success Icon -->
+    <div class="mb-4">
+      <div style="width: 100px; height: 100px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05)); border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; border: 2px solid rgba(16, 185, 129, 0.3);">
+        <i class="fas fa-check text-success" style="font-size: 3rem;"></i>
+      </div>
+    </div>
+    
+    <h2 class="text-white font-weight-bold mb-3">Booking Confirmed!</h2>
+    <p style="color: var(--text-dim); font-size: 1.1rem; margin-bottom: 30px;">
+      Your tickets for <strong class="text-white">{{ booking.event.name }}</strong> have been successfully booked. 
+      Get ready for an amazing experience!
+    </p>
+
+    <!-- Booking Details Card as a Real Ticket -->
+    <div class="row justify-content-center w-100 mb-4 mx-0">
+      <div class="col-md-10 ticket-item px-0">
+        <div id="event-ticket-{{ booking.id }}" class="d-flex flex-column flex-md-row text-left" style="background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; position: relative;">
+          <!-- Ticket Info Side -->
+          <div class="p-4 d-flex flex-column justify-content-center" style="flex: 1; color: #111;">
+            <div class="d-flex align-items-center mb-2">
+              <span class="badge badge-success mr-2" style="background: var(--success-color);">LIVE EVENT</span>
+              <small style="color: #666; font-weight: bold; letter-spacing: 1px;">BOOKMYSEAT EVENTS</small>
+            </div>
+            <h4 class="font-weight-bold mb-1" style="color: #111; font-size: 22px;">{{ booking.event.name }}</h4>
+            <p class="mb-3" style="font-size: 14px; color: #555;"><i class="fas fa-map-marker-alt mr-1" style="color: #888;"></i> {{ booking.event.location }}</p>
+            
+            <div class="d-flex justify-content-between mt-2 p-3" style="background: #f8f9fa; border-radius: 8px; border: 1px solid #eee;">
+              <div>
+                <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Date & Time</small>
+                <div style="font-weight: 800; font-size: 14px; color: #333;">{{ booking.event.date|date:"M d, Y - H:i" }}</div>
+              </div>
+              <div class="text-right">
+                <small style="color: #888; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px;">Quantity</small>
+                <div style="font-weight: 900; font-size: 16px; color: var(--success-color);">{{ booking.quantity }} Tickets</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Perforation Middle -->
+          <div class="d-none d-md-flex flex-column justify-content-between align-items-center" style="width: 2px; border-left: 2px dashed #ccc; position: relative; background: #ffffff;">
+             <div style="position: absolute; top: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+             <div style="position: absolute; bottom: -15px; left: -14px; width: 30px; height: 30px; border-radius: 50%; background: #0b0f19;"></div>
+          </div>
+          
+          <!-- Ticket QR Code Side -->
+          <div class="p-4 d-flex flex-column align-items-center justify-content-center text-center" style="background: #fdfdfd; min-width: 180px; border-left: 1px solid #eee;">
+            <div class="mb-3">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Event-{{ booking.id }}-{{ booking.event.name }}&color=111111&bgcolor=ffffff" alt="QR Code" width="85" height="85" style="border: 1px solid #ddd; padding: 4px; border-radius: 8px;">
+            </div>
+            <div style="font-weight: 900; font-size: 24px; color: #111; margin-bottom: 10px;">${{ booking.total_price|floatformat:2 }}</div>
+            <span style="font-size: 10px; color: #999; font-family: monospace; margin-bottom: 15px;">
+              BOOKING: #EVT-{{ booking.id }}
+            </span>
+            <button type="button" class="btn btn-outline-dark btn-sm px-4 download-btn" onclick="downloadTicket('event-ticket-{{ booking.id }}')" style="border-radius: 30px; font-weight: bold; font-size: 12px; letter-spacing: 0.5px; border-width: 2px;">
+              <i class="fas fa-download mr-1"></i> DOWNLOAD PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-3 justify-content-center" style="gap: 15px;">
+      <a href="{% url 'events_list' %}" class="btn btn-outline-light px-4 py-2" style="border-radius: 8px;">Explore More Events</a>
+      <a href="{% url 'home' %}" class="btn btn-premium-primary px-4 py-2" style="border-radius: 8px;">Back to Home</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  function downloadTicket(ticketId) {
+    const element = document.getElementById(ticketId);
+    
+    // Temporarily hide the download button from the PDF output
+    const btn = element.querySelector('.download-btn');
+    if (btn) btn.style.display = 'none';
+
+    // Temporarily remove glass-panel and background effects from parents to avoid html2canvas bugs
+    const glassPanel = element.closest('.glass-panel');
+    let originalBackdrop = '';
+    let originalBg = '';
+    if (glassPanel) {
+        originalBackdrop = glassPanel.style.backdropFilter || '';
+        originalBg = glassPanel.style.background || '';
+        glassPanel.style.backdropFilter = 'none';
+        glassPanel.style.background = 'transparent';
+    }
+
+    const opt = {
+      margin:       10,
+      filename:     ticketId + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollY: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Restore styles
+      if (btn) btn.style.display = 'inline-block';
+      if (glassPanel) {
+          glassPanel.style.backdropFilter = originalBackdrop;
+          glassPanel.style.background = originalBg;
+      }
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "users/basic.html" %}
+{% block title %}Payment Successful - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-6 mx-auto text-center">
+      <div class="glass-panel p-5" style="border-top: 4px solid var(--success);">
+        {% if refunded %}
+        <div class="d-flex justify-content-center mb-4">
+          <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #991b1b); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);">
+            <i class="fas fa-times text-white" style="font-size: 44px;"></i>
+          </div>
+        </div>
+        <h1 class="mb-3 font-weight-bold" style="color: var(--danger); font-size: 28px;">Booking Failed</h1>
+        <p class="lead mb-4" style="color: var(--text-secondary); font-size: 16px;">
+          {{ message }}
+        </p>
+        {% else %}
+        <!-- Success Animation -->
+        <div class="d-flex justify-content-center mb-4">
+          <div id="successCircle" style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--success), #059669); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px var(--success-glow);">
+            <i class="fas fa-check text-white" style="font-size: 44px;"></i>
+          </div>
+        </div>
+
+        <h1 class="mb-3 font-weight-bold" style="color: var(--success); font-size: 28px;">Booking Confirmed!</h1>
+        <p class="lead mb-4" style="color: var(--text-secondary); font-size: 15px;">
+          Your payment was processed successfully. Your seats are booked, and your e-ticket has been sent to your email.
+        </p>
+
+        <!-- Booking Details -->
+        <div class="p-4 mb-4 text-left" style="background: var(--success-subtle); border: 1px dashed rgba(16, 185, 129, 0.3); border-radius: var(--radius-md);">
+          <p class="mb-3" style="color: var(--text-secondary); font-size: 14px;">
+            <i class="fas fa-check-circle mr-2" style="color: var(--success);"></i> 
+            Real-time Database Lock: <strong style="color: var(--text-primary); margin-left: 4px;">Released & Finalized</strong>
+          </p>
+          <p class="mb-0" style="color: var(--text-secondary); font-size: 14px;">
+            <i class="fas fa-envelope mr-2" style="color: var(--accent-cyan);"></i> 
+            Ticket Confirmation: <strong style="color: var(--text-primary); margin-left: 4px;">Sent in Background</strong>
+          </p>
+        </div>
+
+        <!-- Social Sharing -->
+        <div class="mb-4">
+          <p class="mb-3" style="color: var(--text-secondary); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">Share your booking</p>
+          <div class="d-flex justify-content-center" style="gap: 12px;">
+            <!-- WhatsApp -->
+            <a href="#" id="shareWhatsApp" class="btn" style="background: #25D366; color: #fff; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: transform 0.3s, box-shadow 0.3s;" title="Share on WhatsApp">
+              <i class="fab fa-whatsapp"></i>
+            </a>
+            <!-- Instagram Story (Copy link) -->
+            <a href="#" id="shareInstagram" class="btn" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: #fff; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: transform 0.3s, box-shadow 0.3s;" title="Copy for Instagram">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <!-- Twitter/X -->
+            <a href="#" id="shareTwitter" class="btn" style="background: #1DA1F2; color: #fff; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: transform 0.3s, box-shadow 0.3s;" title="Share on Twitter">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <!-- Copy Link -->
+            <button id="copyLink" class="btn" style="background: var(--glass-bg-strong); color: var(--text-primary); border: 1px solid var(--glass-border); border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: transform 0.3s, box-shadow 0.3s;" title="Copy Link">
+              <i class="fas fa-link"></i>
+            </button>
+          </div>
+          <p id="copyFeedback" class="mt-2" style="color: var(--success); font-size: 12px; display: none;"><i class="fas fa-check mr-1"></i> Copied to clipboard!</p>
+        </div>
+
+        {% endif %}
+        
+        <!-- Action Buttons -->
+        <div class="d-flex flex-column" style="gap: 12px;">
+          <a href="{% url 'profile' %}" class="btn btn-premium-primary py-3 px-4 mx-auto" style="min-width: 220px; font-size: 15px; border-radius: 50px;">
+            <i class="fas fa-ticket-alt mr-2"></i> View My Tickets
+          </a>
+          <a href="/" class="btn btn-premium-secondary py-2 px-4 mx-auto mt-1" style="min-width: 220px; font-size: 14px;">
+            Return to Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const shareText = 'I just booked movie tickets on BookMySeat! Check it out:';
+  const shareUrl = window.location.origin;
+
+  // WhatsApp
+  const whatsappBtn = document.getElementById('shareWhatsApp');
+  if (whatsappBtn) {
+    whatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+    whatsappBtn.target = '_blank';
+  }
+
+  // Twitter
+  const twitterBtn = document.getElementById('shareTwitter');
+  if (twitterBtn) {
+    twitterBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    twitterBtn.target = '_blank';
+  }
+
+  // Instagram (copy booking text)
+  const instaBtn = document.getElementById('shareInstagram');
+  if (instaBtn) {
+    instaBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const instaText = shareText + '\n\n' + shareUrl + '\n\n#BookMySeat #MovieNight #Tickets';
+      navigator.clipboard.writeText(instaText).then(() => {
+        const feedback = document.getElementById('copyFeedback');
+        if (feedback) {
+          feedback.textContent = 'Copied for Instagram! Paste in your story.';
+          feedback.style.display = 'block';
+          setTimeout(() => feedback.style.display = 'none', 3000);
+        }
+      });
+    });
+  }
+
+  // Copy Link
+  const copyBtn = document.getElementById('copyLink');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function() {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const feedback = document.getElementById('copyFeedback');
+        if (feedback) {
+          feedback.innerHTML = '<i class="fas fa-check mr-1"></i> Link copied!';
+          feedback.style.display = 'block';
+          setTimeout(() => feedback.style.display = 'none', 2000);
+        }
+      });
+    });
+  }
+
+  // Social button hover effects
+  document.querySelectorAll('#shareWhatsApp, #shareInstagram, #shareTwitter, #copyLink').forEach(btn => {
+    btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.15)'; btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; btn.style.boxShadow = 'none'; });
+  });
+
+  // Success circle pulse animation
+  const circle = document.getElementById('successCircle');
+  if (circle && typeof gsap !== 'undefined') {
+    gsap.fromTo(circle, { scale: 0, rotation: -180 }, { scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(1.7)' });
+  }
+});
+</script>
+{% endblock %}

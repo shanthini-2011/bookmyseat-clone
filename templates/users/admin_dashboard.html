@@ -1,0 +1,394 @@
+{% extends "users/basic.html" %}
+{% block title %}Admin Analytics Dashboard - BookMySeat{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js for real-time graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    background-color: #111319; /* Dark theme to match design */
+  }
+  .stat-card {
+    background: #1c1f2b;
+    border-radius: 12px;
+    padding: 24px;
+    border-left: 4px solid;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  }
+  .stat-title {
+    font-size: 13px;
+    color: #8b92a5;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .stat-value {
+    font-size: 36px;
+    color: white;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .stat-sub {
+    font-size: 13px;
+  }
+  .panel {
+    background: #1c1f2b;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  }
+  .panel-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+  }
+  .panel-title i {
+    margin-right: 12px;
+  }
+  /* Specific Borders */
+  .border-cyan { border-left-color: #00d2ff; }
+  .border-blue { border-left-color: #3b82f6; }
+  .border-red { border-left-color: #ef4444; }
+  .border-yellow { border-left-color: #f59e0b; }
+  
+  .text-cyan { color: #00d2ff; }
+  .text-blue { color: #3b82f6; }
+  .text-red { color: #ef4444; }
+  .text-yellow { color: #f59e0b; }
+  
+  /* Tables */
+  .dark-table th {
+    color: #8b92a5;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #2d3342;
+    padding: 12px 0;
+  }
+  .dark-table td {
+    color: white;
+    font-size: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid #2d3342;
+  }
+  .dark-table tr:last-child td {
+    border-bottom: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-5">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="text-white font-weight-bold mb-1">Admin Analytics Dashboard</h2>
+      <p style="color: #8b92a5; font-size: 14px;">Real-time optimized metrics & aggregations</p>
+    </div>
+    <div>
+      <span class="badge badge-success px-3 py-2" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981;">
+        <i class="fas fa-satellite-dish mr-2 pulse-anim"></i> WebSocket Live
+      </span>
+    </div>
+  </div>
+
+  <!-- Row 1: Key Metrics -->
+  <div class="row">
+    <!-- Total Revenue -->
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card border-cyan">
+        <div class="stat-title">Total Revenue</div>
+        <div class="stat-value" id="val-rev-monthly">${{ stats.revenue.monthly|default:0|floatformat:2 }}</div>
+        <div class="stat-sub text-cyan"><i class="fas fa-arrow-up mr-1"></i><span id="val-rev-monthly-sub">${{ stats.revenue.monthly|default:0|floatformat:2 }}</span> this month</div>
+      </div>
+    </div>
+    <!-- Total Bookings -->
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card border-blue">
+        <div class="stat-title">Total Bookings</div>
+        <div class="stat-value" id="val-bookings-total">{{ stats.cancellation.total|default:0 }}</div>
+        <div class="stat-sub" style="color: #8b92a5;">Across all theaters</div>
+      </div>
+    </div>
+    <!-- Cancellation Rate -->
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card border-red">
+        <div class="stat-title">Cancellation Rate</div>
+        <div class="stat-value" id="val-cancel-rate">{{ stats.cancellation.rate|default:0 }}%</div>
+        <div class="stat-sub text-red">Failed/Cancelled payments</div>
+      </div>
+    </div>
+    <!-- Daily Revenue -->
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card border-yellow position-relative">
+        <!-- Ping dot for live updates -->
+        <span class="position-absolute" style="top: 24px; right: 24px;">
+          <span class="d-flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444; position: absolute; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-danger" style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444; position: relative;"></span>
+          </span>
+        </span>
+        <style>@keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }</style>
+        
+        <div class="stat-title">Daily Revenue</div>
+        <div class="stat-value" id="val-rev-daily">${{ stats.revenue.daily|default:0|floatformat:2 }}</div>
+        <div class="stat-sub text-success">Last 24 Hours</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Charts -->
+  <div class="row">
+    <!-- Peak Booking Hours (Line Chart) -->
+    <div class="col-lg-8">
+      <div class="panel h-100">
+        <div class="panel-title">
+          <i class="far fa-clock text-blue"></i> Peak Booking Hours
+        </div>
+        <div style="height: 300px; width: 100%;">
+          <canvas id="hoursChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Revenue Breakdown (Doughnut Chart) -->
+    <div class="col-lg-4">
+      <div class="panel h-100">
+        <div class="panel-title">
+          <i class="fas fa-wallet text-blue"></i> Revenue Breakdown
+        </div>
+        <div style="height: 250px; width: 100%; display: flex; justify-content: center; align-items: center;">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Tables -->
+  <div class="row mt-2">
+    <!-- Popular Movies -->
+    <div class="col-lg-5">
+      <div class="panel h-100">
+        <div class="panel-title">
+          <i class="fas fa-film text-blue"></i> Most Popular Movies
+        </div>
+        <table class="w-100 dark-table" id="movies-table">
+          <thead>
+            <tr>
+              <th width="70%">Movie Title</th>
+              <th width="30%">Total Bookings</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamic Data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Busiest Theaters -->
+    <div class="col-lg-7">
+      <div class="panel h-100">
+        <div class="panel-title">
+          <i class="far fa-building text-blue"></i> Busiest Theaters (Occupancy)
+        </div>
+        <table class="w-100 dark-table" id="theaters-table">
+          <thead>
+            <tr>
+              <th width="30%">Theater</th>
+              <th width="30%">Movie</th>
+              <th width="40%">Occupancy Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamic Data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // 1. Initialize Chart.js
+  Chart.defaults.color = '#8b92a5';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  
+  // Hours Line Chart
+  const ctxHours = document.getElementById('hoursChart').getContext('2d');
+  const hoursChart = new Chart(ctxHours, {
+    type: 'line',
+    data: {
+      labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+      datasets: [{
+        label: 'Bookings',
+        data: Array(24).fill(0),
+        borderColor: '#00d2ff',
+        backgroundColor: 'rgba(0, 210, 255, 0.2)',
+        borderWidth: 2,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: '#00d2ff',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#2d3342', drawBorder: false },
+          ticks: { precision: 0 }
+        },
+        x: {
+          grid: { display: false, drawBorder: false }
+        }
+      }
+    }
+  });
+
+  // Revenue Doughnut Chart
+  const ctxRev = document.getElementById('revenueChart').getContext('2d');
+  const revenueChart = new Chart(ctxRev, {
+    type: 'doughnut',
+    data: {
+      labels: ['Daily', 'Weekly (Rest)', 'Monthly (Rest)'],
+      datasets: [{
+        data: [0, 0, 0],
+        backgroundColor: ['#00d2ff', '#3b82f6', '#374151'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '75%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 20, usePointStyle: true, pointStyle: 'rect' }
+        }
+      }
+    }
+  });
+
+  // 2. WebSocket Connection
+  // Determine ws vs wss
+  const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const wsPath = wsScheme + '://' + window.location.host + '/ws/dashboard/';
+  
+  let socket = null;
+
+  function connectWebSocket() {
+    console.log("Connecting to WebSocket...");
+    socket = new WebSocket(wsPath);
+
+    socket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      console.log("Received data from WS:", data);
+      if (data.type === 'initial_data' || data.type === 'update_data') {
+        updateDashboard(data.stats);
+      }
+    };
+
+    socket.onclose = function(e) {
+      console.log('Socket is closed. Reconnecting in 5 seconds...', e.reason);
+      setTimeout(function() { connectWebSocket(); }, 5000);
+    };
+
+    socket.onerror = function(err) {
+      console.error('Socket encountered error: ', err, 'Closing socket');
+      socket.close();
+    };
+  }
+
+  // 3. Update DOM & Charts Function
+  function updateDashboard(stats) {
+    // Update Revenue metrics
+    document.getElementById('val-rev-monthly').innerText = '$' + stats.revenue.monthly.toFixed(2);
+    document.getElementById('val-rev-monthly-sub').innerText = '$' + stats.revenue.monthly.toFixed(2);
+    document.getElementById('val-bookings-total').innerText = stats.cancellation.total;
+    document.getElementById('val-cancel-rate').innerText = stats.cancellation.rate + '%';
+    document.getElementById('val-rev-daily').innerText = '$' + stats.revenue.daily.toFixed(2);
+
+    // Update Line Chart (Hours)
+    hoursChart.data.datasets[0].data = stats.peak_hours;
+    hoursChart.update();
+
+    // Update Doughnut Chart (Revenue Segments)
+    // Avoid negative values by calculating the diffs
+    let daily = stats.revenue.daily;
+    let weeklyRest = Math.max(0, stats.revenue.weekly - daily);
+    let monthlyRest = Math.max(0, stats.revenue.monthly - stats.revenue.weekly);
+    
+    // If everything is 0, give dummy data so chart isn't empty
+    if (daily === 0 && weeklyRest === 0 && monthlyRest === 0) {
+        revenueChart.data.datasets[0].data = [0, 0, 100];
+        revenueChart.data.datasets[0].backgroundColor = ['#00d2ff', '#3b82f6', '#1c1f2b'];
+    } else {
+        revenueChart.data.datasets[0].data = [daily, weeklyRest, monthlyRest];
+        revenueChart.data.datasets[0].backgroundColor = ['#00d2ff', '#3b82f6', '#374151'];
+    }
+    revenueChart.update();
+
+    // Update Popular Movies Table
+    const tbodyMovies = document.querySelector('#movies-table tbody');
+    tbodyMovies.innerHTML = '';
+    if (stats.popular_movies.length === 0) {
+      tbodyMovies.innerHTML = '<tr><td colspan="2" class="text-center">No data</td></tr>';
+    } else {
+      stats.popular_movies.forEach(m => {
+        tbodyMovies.innerHTML += `
+          <tr>
+            <td class="font-weight-bold text-white">${m.name}</td>
+            <td>
+              <span class="badge badge-danger" style="background: #ef4444; color: white;">${m.booking_count}</span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Update Busiest Theaters Table
+    const tbodyTheaters = document.querySelector('#theaters-table tbody');
+    tbodyTheaters.innerHTML = '';
+    if (stats.theaters.length === 0) {
+      tbodyTheaters.innerHTML = '<tr><td colspan="3" class="text-center">No data</td></tr>';
+    } else {
+      stats.theaters.forEach(t => {
+        tbodyTheaters.innerHTML += `
+          <tr>
+            <td class="font-weight-bold text-white">${t.name}</td>
+            <td style="color: #8b92a5;">${t.movie}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="progress flex-grow-1 mr-3" style="height: 6px; background: #2d3342; border-radius: 6px;">
+                  <div class="progress-bar" role="progressbar" style="width: ${t.occupancy_rate}%; background: #3b82f6;" aria-valuenow="${t.occupancy_rate}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="font-weight-bold" style="width: 40px; text-align: right;">${t.occupancy_rate}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  // Start connection
+  connectWebSocket();
+</script>
+{% endblock %}

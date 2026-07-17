@@ -1,0 +1,194 @@
+{% extends "users/basic.html" %}
+{% block title %}Confirm Booking - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Checkout Card -->
+      <div class="glass-panel p-4 p-md-5">
+        <h2 class="text-white text-center mb-4 text-gradient-aurora" style="font-weight: 800;">
+          <i class="fa-solid fa-lock mr-2" style="font-size: 24px;"></i> Confirm Booking
+        </h2>
+        <hr class="neon-separator" style="margin: 16px 0 24px;">
+        
+        <!-- Timer alert panel -->
+        <div class="text-center p-4 rounded-lg mb-4" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1)); border: 1px dashed rgba(245, 158, 11, 0.3);">
+          <p class="mb-2" style="color: var(--warning-color); font-size: 13px; font-weight: 700; letter-spacing: 1px;">
+            <i class="fas fa-clock mr-2"></i> SECURE SEAT LOCK ACTIVE
+          </p>
+          <h1 id="timerDisplay" class="text-white font-weight-bold mb-1" style="font-size: 42px; letter-spacing: 2px;">
+            02:00
+          </h1>
+          <p class="mb-0" style="color: var(--text-muted); font-size: 13px;">Finish your payment before this lock expires!</p>
+        </div>
+
+        <!-- Booking details list -->
+        <div class="mb-4 p-4 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);">
+          <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255,255,255,0.05) !important;">
+            <span style="color: var(--text-muted); font-size: 14px;">Movie</span>
+            <strong class="text-white" style="font-size: 15px;">{{ theater.movie.name }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255,255,255,0.05) !important;">
+            <span style="color: var(--text-muted); font-size: 14px;">Theater</span>
+            <strong class="text-white" style="font-size: 15px;">{{ theater.name }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255,255,255,0.05) !important;">
+            <span style="color: var(--text-muted); font-size: 14px;">Seats</span>
+            <strong class="text-white" style="font-size: 15px;">
+              {% for seat in seats %}
+                {{ seat.seat_number }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color: var(--text-muted); font-size: 14px;">Ticket Price</span>
+            <strong class="text-white" style="font-size: 15px;">${{ total_price|floatformat:2 }}</strong>
+          </div>
+        </div>
+
+        <!-- Food & Beverages Section (Feature 2) -->
+        {% if food_items %}
+        <div class="mb-4">
+          <h5 class="text-white mb-3" style="font-weight: 700;">
+            <i class="fas fa-utensils mr-2" style="color: var(--accent-amber);"></i> Add Food & Beverages
+          </h5>
+          <div class="row" id="fnbSection">
+            {% for item in food_items %}
+            <div class="col-md-6 mb-3">
+              <div class="p-3 rounded-lg d-flex align-items-center justify-content-between" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px;">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    {% if item.category == 'snacks' %}
+                      <i class="fas fa-cookie-bite" style="color: var(--accent-amber);"></i>
+                    {% elif item.category == 'drinks' %}
+                      <i class="fas fa-glass-water" style="color: var(--accent-cyan);"></i>
+                    {% else %}
+                      <i class="fas fa-box-open" style="color: var(--accent-pink);"></i>
+                    {% endif %}
+                    <strong class="text-white" style="font-size: 14px;">{{ item.name }}</strong>
+                  </div>
+                  <span style="color: var(--success-color); font-size: 14px; font-weight: 700;">${{ item.price|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex align-items-center" style="gap: 8px;">
+                  <button type="button" class="fnb-qty-btn" onclick="changeFnbQty({{ item.id }}, -1)">−</button>
+                  <input type="number" name="food_qty_{{ item.id }}" id="fnb_qty_{{ item.id }}" value="0" min="0" max="10" class="fnb-qty-input" readonly>
+                  <button type="button" class="fnb-qty-btn" onclick="changeFnbQty({{ item.id }}, 1)">+</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          
+          <!-- F&B Total -->
+          <div class="d-flex justify-content-between mt-2 p-3 rounded-lg" style="background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.2);">
+            <span style="color: var(--text-muted); font-size: 14px;">F&B Total:</span>
+            <strong id="fnbTotalLabel" style="color: var(--accent-amber); font-size: 16px;">$0.00</strong>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Grand Total -->
+        <div class="d-flex justify-content-between mt-3 mb-4 p-4 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(16, 185, 129, 0.3);">
+          <span class="font-weight-bold text-white" style="font-size: 18px;">Grand Total</span>
+          <strong id="grandTotalLabel" style="color: var(--success-color); font-size: 28px; font-weight: 800;">${{ total_price|floatformat:2 }}</strong>
+        </div>
+
+        {% if error %}
+          <div class="alert alert-danger border-0 mb-4 px-4 py-3" style="background: rgba(239, 68, 68, 0.1); color: #fca5a5; font-size: 14px; border-radius: 12px;">
+            <i class="fas fa-exclamation-circle mr-2"></i> {{ error }}
+          </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="text-center mt-2">
+          <form action="{% url 'create_checkout_session' theater.id %}" method="POST" id="checkoutForm">
+            {% csrf_token %}
+            <!-- Hidden F&B fields will be injected here by JS -->
+            <div id="fnbHiddenFields"></div>
+            <button type="submit" class="btn btn-premium-primary btn-block btn-lg mb-3" style="font-size: 16px; padding: 14px 24px;">
+              <i class="fa-solid fa-credit-card mr-2"></i> Pay with Stripe
+            </button>
+          </form>
+          <a href="{% url 'payment_cancel' %}?theater_id={{ theater.id }}" class="btn btn-premium-secondary btn-block" style="font-size: 14px; padding: 12px 24px;">
+            Cancel Booking & Release Seats
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let remainingSeconds = parseInt("{{ remaining_seconds|default:120 }}");
+    const timerDisplay = document.getElementById('timerDisplay');
+    const ticketTotal = parseFloat("{{ total_price }}");
+
+    const updateTimer = () => {
+      if (remainingSeconds <= 0) {
+        timerDisplay.textContent = "00:00";
+        timerDisplay.style.color = "var(--danger-color)";
+        alert("Your seat lock has expired! Please select your seats again.");
+        window.location.href = "{% url 'book_seats' theater.id %}";
+        return;
+      }
+      const mins = Math.floor(remainingSeconds / 60);
+      const secs = remainingSeconds % 60;
+      timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      if (remainingSeconds <= 30) {
+        timerDisplay.style.color = "var(--primary-color)";
+      }
+      remainingSeconds--;
+    };
+    updateTimer();
+    setInterval(updateTimer, 1000);
+
+    // F&B quantity and total management
+    window.changeFnbQty = function(itemId, delta) {
+      const input = document.getElementById(`fnb_qty_${itemId}`);
+      let val = parseInt(input.value) + delta;
+      if (val < 0) val = 0;
+      if (val > 10) val = 10;
+      input.value = val;
+      updateFnbTotal();
+    };
+
+    function updateFnbTotal() {
+      let fnbTotal = 0;
+      const fnbInputs = document.querySelectorAll('.fnb-qty-input');
+      fnbInputs.forEach(input => {
+        const qty = parseInt(input.value);
+        if (qty > 0) {
+          // Get price from the parent card's price label
+          const card = input.closest('.col-md-6');
+          const priceText = card.querySelector('[style*="color: var(--success-color)"]').textContent;
+          const price = parseFloat(priceText.replace('$', ''));
+          fnbTotal += price * qty;
+        }
+      });
+      
+      const fnbLabel = document.getElementById('fnbTotalLabel');
+      const grandLabel = document.getElementById('grandTotalLabel');
+      if (fnbLabel) fnbLabel.textContent = `$${fnbTotal.toFixed(2)}`;
+      if (grandLabel) grandLabel.textContent = `$${(ticketTotal + fnbTotal).toFixed(2)}`;
+      
+      // Update hidden form fields for checkout
+      const hiddenDiv = document.getElementById('fnbHiddenFields');
+      if (hiddenDiv) {
+        hiddenDiv.innerHTML = '';
+        fnbInputs.forEach(input => {
+          const qty = parseInt(input.value);
+          if (qty > 0) {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = input.name;
+            hidden.value = qty;
+            hiddenDiv.appendChild(hidden);
+          }
+        });
+      }
+    }
+  });
+</script>
+{% endblock %}

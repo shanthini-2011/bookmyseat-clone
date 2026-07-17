@@ -1,0 +1,515 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BookMySeat - Premium movie ticket booking with real-time seat selection, secure Stripe payments, and instant e-tickets." />
+    <title>{% block title %}BookMySeat{% endblock %}</title>
+    
+    <!-- CDNs: Bootstrap CSS, FontAwesome 6 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Swiper.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
+    <!-- AOS (Animate on Scroll) CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" />
+
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=11" />
+    {% block extra_css %}{% endblock %}
+
+    <!-- Restore theme before render to avoid flash -->
+    <script>
+      (function() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- Premium Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+      <div class="container">
+        <div class="d-flex align-items-center">
+          <a class="navbar-brand mr-4" href="/">
+            <i class="fa-solid fa-ticket-simple mr-2"></i>
+            BookMy<span>Seat</span>
+          </a>
+          
+          <!-- Location Selector -->
+          <div class="location-selector" style="cursor: pointer;" data-toggle="modal" data-target="#citySelectorModal">
+            <i class="fa-solid fa-location-dot" style="color: var(--primary); font-size: 14px;"></i>
+            <span class="city-text">{{ selected_city_name|default:"Select City" }}</span>
+            <i class="fa-solid fa-chevron-down" style="color: var(--text-tertiary); font-size: 10px; margin-left: 2px;"></i>
+          </div>
+        </div>
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-toggle="collapse"
+          data-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ml-auto align-items-center">
+            <li class="nav-item">
+              <a class="nav-link" href="/"><i class="fa-solid fa-house mr-1" style="font-size: 12px;"></i> Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/movies"><i class="fa-solid fa-film mr-1" style="font-size: 12px;"></i> Movies</a>
+            </li>
+            {% if user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'profile' %}"><i class="fa-solid fa-user mr-1" style="font-size: 12px;"></i> Profile</a>
+            </li>
+            {% if user.is_superuser %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'admin_dashboard' %}" style="color: var(--accent-violet) !important;">
+                <i class="fa-solid fa-chart-line mr-1"></i>Analytics
+              </a>
+            </li>
+            {% endif %}
+            <li class="nav-item ml-lg-2">
+              <form method="POST" action="{% url 'logout' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-premium-secondary btn-sm py-2">
+                  Logout <i class="fa-solid fa-right-from-bracket ml-1"></i>
+                </button>
+              </form>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'login' %}">Login</a>
+            </li>
+            <li class="nav-item ml-lg-2">
+              <a class="btn btn-premium-primary btn-sm py-2 px-4" href="{% url 'register' %}">
+                <i class="fa-solid fa-user-plus mr-1" style="font-size: 11px;"></i> Register
+              </a>
+            </li>
+            {% endif %}
+            <!-- Notification Bell -->
+            {% if user.is_authenticated %}
+            <li class="nav-item ml-lg-2" style="position: relative;">
+              <button id="notificationBell" class="theme-toggle-btn" title="Enable Notifications" onclick="toggleNotifications()" style="position: relative;">
+                <i class="fas fa-bell"></i>
+                <span id="notifBadge" style="display: none; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: var(--primary); border-radius: 50%; border: 2px solid var(--bg-primary);"></span>
+              </button>
+              <!-- Notification Dropdown -->
+              <div id="notifDropdown" style="display: none; position: absolute; right: 0; top: 44px; width: 320px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); z-index: 9999; overflow: hidden;">
+                <div style="padding: 14px 16px; border-bottom: 1px solid var(--glass-border);">
+                  <h6 style="margin: 0; font-weight: 700; font-size: 14px; color: var(--text-primary);"><i class="fas fa-bell mr-2" style="color: var(--primary);"></i>Notifications</h6>
+                </div>
+                <div id="notifList" style="max-height: 280px; overflow-y: auto; padding: 8px;"></div>
+                <div style="padding: 10px 16px; border-top: 1px solid var(--glass-border); text-align: center;">
+                  <button onclick="clearNotifications()" style="background: none; border: none; color: var(--text-tertiary); font-size: 12px; cursor: pointer;">Clear all</button>
+                </div>
+              </div>
+            </li>
+            {% endif %}
+            <!-- Theme Toggle -->
+            <li class="nav-item ml-lg-2">
+              <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme" onclick="toggleTheme()">
+                <i id="themeIcon" class="fas fa-moon"></i>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1">
+      {% block content %} {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-custom">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-4 mb-4 mb-md-0">
+            <h5 style="font-weight: 700;">
+              <i class="fa-solid fa-ticket-simple mr-2" style="color: var(--primary);"></i>
+              BookMy<span style="color: var(--primary);">Seat</span>
+            </h5>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+              Premium movie ticket booking platform with real-time seat selection, secure payments, and instant digital tickets.
+            </p>
+          </div>
+          <div class="col-md-4 mb-4 mb-md-0">
+            <h5 style="font-weight: 700;">Quick Links</h5>
+            <ul class="list-unstyled" style="font-size: 14px;">
+              <li class="mb-2"><a href="/">Home</a></li>
+              <li class="mb-2"><a href="/movies">Movies</a></li>
+              <li class="mb-2"><a href="{% url 'events_list' %}">Events</a></li>
+            </ul>
+          </div>
+          <div class="col-md-4">
+            <h5 style="font-weight: 700;">Connect</h5>
+            <div class="d-flex" style="gap: 12px; font-size: 20px;">
+              <a href="#"><i class="fab fa-twitter"></i></a>
+              <a href="#"><i class="fab fa-instagram"></i></a>
+              <a href="#"><i class="fab fa-youtube"></i></a>
+              <a href="#"><i class="fab fa-github"></i></a>
+            </div>
+            <p class="mt-3" style="font-size: 12px; color: var(--text-tertiary);">
+              Powered by Django, GSAP, Lenis & Stripe
+            </p>
+          </div>
+        </div>
+        <hr class="neon-separator" />
+        <div class="text-center" style="color: var(--text-tertiary);">
+          <p class="mb-0" style="font-size: 13px;">&copy; 2026 BookMySeat. Crafted with <i class="fa-solid fa-heart" style="color: var(--primary);"></i> and premium animations.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- City Selector Modal -->
+    <div class="modal fade" id="citySelectorModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 9999;">
+      <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 520px;">
+        <div class="modal-content city-modal-content">
+          <!-- Search Bar -->
+          <div class="p-4 pb-0">
+            <div class="position-relative mb-3">
+              <i class="fa-solid fa-search position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); font-size: 14px;"></i>
+              <input type="text" id="citySearchInput" class="city-search-input" placeholder="Search for your city">
+            </div>
+            <!-- Detect Location -->
+            <div class="mb-4">
+              <a href="#" id="detectLocationBtn" class="city-detect-link">
+                <i class="fa-solid fa-location-crosshairs"></i>
+                <span id="detectBtnText">Detect my location</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Popular Cities -->
+          <div class="px-4 pb-4">
+            <h6 class="text-center mb-4" style="font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; font-size: 14px;">Popular Cities</h6>
+            <div class="d-flex justify-content-center flex-wrap" id="cityGrid" style="gap: 24px;">
+              {% for city in all_cities %}
+              <div class="city-card-item city-card {% if selected_city_id == city.id %}active{% endif %}" data-city-id="{{ city.id }}" data-city-name="{{ city.name }}">
+                <div class="city-icon-circle {% if selected_city_id == city.id %}active{% endif %}">
+                  {% if city.image %}
+                    <img src="{{ city.image.url }}" alt="{{ city.name }}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%;">
+                  {% else %}
+                    <i class="fa-solid fa-city" style="font-size: 22px; color: {% if selected_city_id == city.id %}var(--primary){% else %}var(--text-secondary){% endif %};"></i>
+                  {% endif %}
+                </div>
+                <div class="city-name">{{ city.name }}</div>
+              </div>
+              {% empty %}
+              <div class="text-center w-100" style="color: var(--text-tertiary);">
+                <p>No cities available. Add cities in the admin panel.</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Close -->
+          <div class="city-modal-footer">
+            <button type="button" class="btn btn-link" data-dismiss="modal" style="font-size: 13px; text-decoration: none; color: var(--text-secondary);">
+              <i class="fa-solid fa-xmark mr-1"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden CSRF form -->
+    <form id="csrf-form" style="display: none;">{% csrf_token %}</form>
+
+    <!-- Scripts: JQuery, Popper, Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <!-- Animation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+
+    <!-- Swiper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <!-- AOS (Animate on Scroll) -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+
+    <!-- Custom Animations -->
+    <script src="{% static 'js/animations.js' %}?v=11"></script>
+
+    <script>
+      // ========== Theme Toggle ==========
+      function toggleTheme() {
+        const html = document.documentElement;
+        const icon = document.getElementById('themeIcon');
+        const isLight = html.getAttribute('data-theme') === 'light';
+        
+        if (isLight) {
+          html.setAttribute('data-theme', 'dark');
+          icon.className = 'fas fa-moon';
+          localStorage.setItem('theme', 'dark');
+        } else {
+          html.setAttribute('data-theme', 'light');
+          icon.className = 'fas fa-sun';
+          localStorage.setItem('theme', 'light');
+        }
+      }
+
+      // Restore icon on load
+      (function() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') {
+          const icon = document.getElementById('themeIcon');
+          if (icon) icon.className = 'fas fa-sun';
+        }
+      })();
+
+      // ========== City Selector Logic ==========
+      document.querySelectorAll('.city-card').forEach(card => {
+        // Hover effects
+        card.addEventListener('mouseenter', function() {
+          const circle = this.querySelector('.city-icon-circle');
+          if (circle) {
+            circle.style.transform = 'scale(1.1)';
+          }
+        });
+        card.addEventListener('mouseleave', function() {
+          const circle = this.querySelector('.city-icon-circle');
+          if (circle) {
+            circle.style.transform = 'scale(1)';
+          }
+        });
+
+        // Click handler
+        card.addEventListener('click', function() {
+          const cityId = this.dataset.cityId;
+          const csrfToken = document.querySelector('#csrf-form input[name="csrfmiddlewaretoken"]').value;
+          
+          // Visual feedback
+          document.querySelectorAll('.city-card').forEach(c => c.classList.remove('active'));
+          document.querySelectorAll('.city-icon-circle').forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
+          const circle = this.querySelector('.city-icon-circle');
+          if (circle) circle.classList.add('active');
+
+          fetch('/movies/set-city/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': csrfToken
+            },
+            body: 'city_id=' + cityId
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              window.location.reload();
+            }
+          });
+        });
+      });
+
+      // City Search Filter
+      const citySearchInput = document.getElementById('citySearchInput');
+      if (citySearchInput) {
+        citySearchInput.addEventListener('input', function() {
+          const query = this.value.toLowerCase().trim();
+          document.querySelectorAll('.city-card').forEach(card => {
+            const name = (card.dataset.cityName || '').toLowerCase();
+            card.style.display = name.includes(query) ? '' : 'none';
+          });
+        });
+      }
+
+      // Auto Detect Location (GPS)
+      const detectLocationBtn = document.getElementById('detectLocationBtn');
+      if (detectLocationBtn) {
+        detectLocationBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const textEl = document.getElementById('detectBtnText');
+          const originalText = textEl ? textEl.innerText : 'Detect my location';
+          if (textEl) textEl.innerText = 'Detecting...';
+
+          if (!("geolocation" in navigator)) {
+            if (textEl) textEl.innerText = 'Not supported';
+            setTimeout(() => { if (textEl) textEl.innerText = originalText; }, 2000);
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+
+              fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                .then(r => r.json())
+                .then(data => {
+                  const candidates = [
+                    data.city,
+                    data.locality, 
+                    data.principalSubdivision,
+                    ...(data.localityInfo && data.localityInfo.administrative 
+                      ? data.localityInfo.administrative.map(a => a.name) 
+                      : [])
+                  ].filter(Boolean);
+
+                  let foundCityId = null;
+                  let matchedCityName = '';
+
+                  for (const candidate of candidates) {
+                    document.querySelectorAll('.city-card').forEach(card => {
+                      const cityName = (card.dataset.cityName || '').toLowerCase();
+                      if (candidate.toLowerCase().includes(cityName) || cityName.includes(candidate.toLowerCase())) {
+                        foundCityId = card.dataset.cityId;
+                        matchedCityName = card.dataset.cityName;
+                      }
+                    });
+                    if (foundCityId) break;
+                  }
+
+                  if (foundCityId) {
+                    if (textEl) textEl.innerText = matchedCityName + ' detected!';
+                    const csrfToken = document.querySelector('#csrf-form input[name="csrfmiddlewaretoken"]').value;
+                    fetch('/movies/set-city/', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                      },
+                      body: 'city_id=' + foundCityId
+                    })
+                    .then(r => r.json())
+                    .then(d => {
+                      if (d.status === 'success') {
+                        setTimeout(() => window.location.reload(), 500);
+                      }
+                    });
+                  } else {
+                    const detected = candidates[0] || 'Unknown';
+                    if (textEl) textEl.innerText = detected + ' (not available)';
+                    setTimeout(() => { if (textEl) textEl.innerText = originalText; }, 3000);
+                  }
+                })
+                .catch(() => {
+                  if (textEl) textEl.innerText = 'Detection failed';
+                  setTimeout(() => { if (textEl) textEl.innerText = originalText; }, 2000);
+                });
+            },
+            function(error) {
+              let msg = 'Location error';
+              if (error.code === 1) msg = 'Permission denied';
+              else if (error.code === 2) msg = 'GPS unavailable';
+              else if (error.code === 3) msg = 'Timed out';
+              if (textEl) textEl.innerText = msg;
+              setTimeout(() => { if (textEl) textEl.innerText = originalText; }, 2000);
+            },
+            { timeout: 10000, enableHighAccuracy: false, maximumAge: 60000 }
+          );
+        });
+      }
+    </script>
+
+    <!-- Push Notifications -->
+    <script>
+      // Notification system
+      let notificationsEnabled = localStorage.getItem('notif_enabled') === 'true';
+      let notifications = JSON.parse(localStorage.getItem('notif_list') || '[]');
+
+      function toggleNotifications() {
+        const dropdown = document.getElementById('notifDropdown');
+        if (!dropdown) return;
+
+        if (dropdown.style.display === 'none') {
+          dropdown.style.display = 'block';
+          renderNotifications();
+
+          // Request browser notification permission
+          if (!notificationsEnabled && 'Notification' in window) {
+            Notification.requestPermission().then(perm => {
+              if (perm === 'granted') {
+                notificationsEnabled = true;
+                localStorage.setItem('notif_enabled', 'true');
+                addNotification('🔔 Notifications enabled!', 'You will receive alerts about new movies and offers.');
+                showBrowserNotification('BookMySeat', 'Notifications enabled! You\'ll get alerts about new releases.');
+              }
+            });
+          }
+        } else {
+          dropdown.style.display = 'none';
+        }
+      }
+
+      function addNotification(title, body) {
+        const notif = { id: Date.now(), title, body, time: new Date().toLocaleTimeString() };
+        notifications.unshift(notif);
+        if (notifications.length > 20) notifications = notifications.slice(0, 20);
+        localStorage.setItem('notif_list', JSON.stringify(notifications));
+        renderNotifications();
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'block';
+      }
+
+      function renderNotifications() {
+        const list = document.getElementById('notifList');
+        if (!list) return;
+        if (notifications.length === 0) {
+          list.innerHTML = '<div style="padding: 30px 16px; text-align: center; color: var(--text-tertiary);"><i class="fas fa-bell-slash" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>No notifications yet</div>';
+          return;
+        }
+        list.innerHTML = notifications.map(n => `
+          <div style="padding: 10px 12px; border-radius: 8px; margin-bottom: 4px; background: var(--glass-bg); transition: background 0.2s;" onmouseover="this.style.background='var(--glass-bg-strong)'" onmouseout="this.style.background='var(--glass-bg)'">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${n.title}</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">${n.body}</div>
+            <div style="font-size: 10px; color: var(--text-tertiary); margin-top: 4px;">${n.time}</div>
+          </div>
+        `).join('');
+      }
+
+      function clearNotifications() {
+        notifications = [];
+        localStorage.setItem('notif_list', '[]');
+        renderNotifications();
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+      }
+
+      function showBrowserNotification(title, body) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, { body, icon: '/static/favicon.ico', badge: '/static/favicon.ico' });
+        }
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('notifDropdown');
+        const bell = document.getElementById('notificationBell');
+        if (dropdown && bell && !dropdown.contains(e.target) && !bell.contains(e.target)) {
+          dropdown.style.display = 'none';
+        }
+      });
+
+      // Simulate new movie notification after 10 seconds (demo)
+      setTimeout(() => {
+        if (notificationsEnabled) {
+          const movies = ['Pushpa 3', 'Kalki 2899 AD Part 2', 'Leo 2', 'RRR 2', 'KGF Chapter 3'];
+          const randomMovie = movies[Math.floor(Math.random() * movies.length)];
+          addNotification('🎬 New Release!', `"${randomMovie}" is now showing near you. Book tickets now!`);
+          showBrowserNotification('New Movie Alert!', `"${randomMovie}" is now showing near you!`);
+        }
+      }, 10000);
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

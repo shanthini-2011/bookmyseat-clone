@@ -1,0 +1,293 @@
+{% extends "users/basic.html" %}
+{% block title %}Select Seats - {{ theaters.movie.name }} - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <!-- Movie & Theater Info Card -->
+      <div class="glass-panel p-4 mb-4" style="border-left: 4px solid var(--primary);">
+        <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+          <div>
+            <h2 class="mb-1" style="font-weight: 800; color: var(--text-primary);">{{ theaters.movie.name }}</h2>
+            <p class="mb-0" style="color: var(--text-secondary); font-size: 14px;">
+              <i class="fas fa-film mr-2" style="color: var(--accent-pink);"></i>{{ theaters.name }} | 
+              <i class="far fa-clock mr-2 ml-2" style="color: var(--accent-cyan);"></i>{{ theaters.time|date:"F d, Y - H:i" }}
+            </p>
+          </div>
+          <div class="d-flex" style="gap: 8px;">
+            <span class="badge-glass-primary px-3 py-2">2D / Digital</span>
+            <span class="badge-glass-violet px-3 py-2"><i class="fas fa-couch mr-1"></i> {{ seats|length }} Seats</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seat Selector Card -->
+      <div class="glass-panel p-4 p-md-5 text-center">
+        {% if error %}
+          <div class="alert alert-danger border-0 text-left mb-4">
+            <i class="fas fa-exclamation-circle mr-2"></i> {{ error }}
+          </div>
+        {% endif %}
+
+        <h4 class="mb-3 section-title text-left" style="font-weight: 800; color: var(--text-primary);">Select Your Seats</h4>
+        
+        <!-- Seat Count Selector -->
+        <div class="seat-count-selector mb-4 p-3" style="background: var(--glass-bg); border-radius: var(--radius-lg); border: 1px solid var(--glass-border);">
+          <p class="mb-2" style="color: var(--text-secondary); font-size: 14px;">How many seats?</p>
+          <div class="d-flex justify-content-center flex-wrap" style="gap: 8px;">
+            {% for i in "12345678910" %}
+              {% if forloop.counter <= 10 %}
+              <button type="button" class="seat-count-btn {% if forloop.counter == 2 %}active{% endif %}" data-count="{{ forloop.counter }}">
+                {{ forloop.counter }}
+              </button>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Cinema Screen -->
+        <div class="screen-container">
+          <div class="screen-cinema"></div>
+          <div class="screen-label">All eyes this way please!</div>
+        </div>
+
+        <form method="POST" id="seatForm">
+          {% csrf_token %}
+          
+          <!-- Seat Grid with Tier Sections -->
+          <div class="bms-seat-layout">
+            
+            <!-- RECLINER SECTION (Rows A-B) -->
+            <div class="tier-recliner">
+              <div class="seat-tier-header">
+                <span class="seat-tier-label"><i class="fas fa-crown mr-1"></i> Recliner</span>
+                <span class="seat-tier-price">$ 25</span>
+              </div>
+              {% for row_letter, row_seats in seat_rows.items %}
+                {% if row_letter == 'A' or row_letter == 'B' %}
+                <div class="bms-seat-row">
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                  <div class="bms-row-seats">
+                    {% for seat in row_seats %}
+                      {% if forloop.counter == 8 %}
+                      <div class="bms-aisle"></div>
+                      {% endif %}
+                      <div class="bms-seat-wrapper">
+                        {% if seat.status == 'available' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" data-tier="recliner" data-price="25" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat available" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'selected' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" checked data-tier="recliner" data-price="25" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat selected" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'booked' %}
+                          <div class="bms-seat sold">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% elif seat.status == 'locked' %}
+                          <div class="bms-seat locked" title="Temporarily locked">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <!-- PREMIUM SECTION (Rows C-E) -->
+            <div class="tier-premium">
+              <div class="seat-tier-header">
+                <span class="seat-tier-label"><i class="fas fa-gem mr-1"></i> Premium</span>
+                <span class="seat-tier-price">$ 18</span>
+              </div>
+              {% for row_letter, row_seats in seat_rows.items %}
+                {% if row_letter == 'C' or row_letter == 'D' or row_letter == 'E' %}
+                <div class="bms-seat-row">
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                  <div class="bms-row-seats">
+                    {% for seat in row_seats %}
+                      {% if forloop.counter == 8 %}
+                      <div class="bms-aisle"></div>
+                      {% endif %}
+                      <div class="bms-seat-wrapper">
+                        {% if seat.status == 'available' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" data-tier="premium" data-price="18" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat available" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'selected' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" checked data-tier="premium" data-price="18" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat selected" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'booked' %}
+                          <div class="bms-seat sold">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% elif seat.status == 'locked' %}
+                          <div class="bms-seat locked" title="Temporarily locked">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <!-- CLASSIC SECTION (Rows F onwards) -->
+            <div class="tier-classic">
+              <div class="seat-tier-header">
+                <span class="seat-tier-label"><i class="fas fa-chair mr-1"></i> Classic</span>
+                <span class="seat-tier-price">$ 12</span>
+              </div>
+              {% for row_letter, row_seats in seat_rows.items %}
+                {% if row_letter != 'A' and row_letter != 'B' and row_letter != 'C' and row_letter != 'D' and row_letter != 'E' %}
+                <div class="bms-seat-row">
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                  <div class="bms-row-seats">
+                    {% for seat in row_seats %}
+                      {% if forloop.counter == 8 %}
+                      <div class="bms-aisle"></div>
+                      {% endif %}
+                      <div class="bms-seat-wrapper">
+                        {% if seat.status == 'available' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" data-tier="classic" data-price="12" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat available" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'selected' %}
+                          <input type="checkbox" name="seats" value="{{ seat.id }}" class="d-none seat-checkbox" id="seat-{{ seat.id }}" checked data-tier="classic" data-price="12" />
+                          <label for="seat-{{ seat.id }}" class="bms-seat selected" data-seat="{{ seat.seat_number }}">
+                            {{ seat.seat_number|slice:"1:" }}
+                          </label>
+                        {% elif seat.status == 'booked' %}
+                          <div class="bms-seat sold">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% elif seat.status == 'locked' %}
+                          <div class="bms-seat locked" title="Temporarily locked">{{ seat.seat_number|slice:"1:" }}</div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="bms-row-label">{{ row_letter }}</div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Seat Legend -->
+          <div class="seat-tier-legend mt-4 mb-4">
+            <div class="legend-item"><span class="legend-dot available"></span> Available</div>
+            <div class="legend-item"><span class="legend-dot selected"></span> Selected</div>
+            <div class="legend-item"><span class="legend-dot sold"></span> Sold</div>
+            <div class="legend-item"><span class="legend-dot recliner"></span> Recliner</div>
+            <div class="legend-item"><span class="legend-dot premium"></span> Premium</div>
+          </div>
+
+          <!-- Dynamic Selection Summary -->
+          <div id="bookingSummaryPanel" class="mt-4 p-4 d-none" style="background: var(--success-subtle); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-lg); text-align: left;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+              <div>
+                <p class="mb-1" style="color: var(--text-secondary); font-size: 13px;">Selected Seats:</p>
+                <strong id="selectedSeatsLabel" style="font-size: 16px; color: var(--text-primary);"></strong>
+              </div>
+              <div class="text-right">
+                <p class="mb-1" style="color: var(--text-secondary); font-size: 13px;">Total Price:</p>
+                <strong id="priceLabel" style="color: var(--success); font-size: 24px; font-weight: 800;"></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checkout Button -->
+          <div class="text-center mt-5">
+            <button type="submit" class="btn btn-premium-primary btn-lg px-5 py-3" style="font-size: 16px; min-width: 250px; border-radius: 50px;">
+              <i class="fas fa-check-circle mr-2"></i> Confirm & Book Seats
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.seat-checkbox');
+    const summaryPanel = document.getElementById('bookingSummaryPanel');
+    const selectedSeatsLabel = document.getElementById('selectedSeatsLabel');
+    const priceLabel = document.getElementById('priceLabel');
+    const seatCountBtns = document.querySelectorAll('.seat-count-btn');
+    let maxSeats = 2;
+
+    // Seat count selector
+    seatCountBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        seatCountBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        maxSeats = parseInt(btn.dataset.count);
+        const checked = document.querySelectorAll('.seat-checkbox:checked');
+        if (checked.length > maxSeats) {
+          let count = 0;
+          checked.forEach(cb => {
+            count++;
+            if (count > maxSeats) {
+              cb.checked = false;
+              const label = cb.nextElementSibling;
+              if (label) label.classList.remove('selected');
+            }
+          });
+        }
+        updateSummary();
+      });
+    });
+
+    const updateSummary = () => {
+      const selected = [];
+      let totalPrice = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          const label = cb.nextElementSibling;
+          const seatName = label.getAttribute('data-seat');
+          const price = parseInt(cb.dataset.price) || 150;
+          selected.push(seatName);
+          totalPrice += price;
+          label.classList.add('selected');
+        } else {
+          const label = cb.nextElementSibling;
+          if (label) label.classList.remove('selected');
+        }
+      });
+
+      if (selected.length > 0) {
+        summaryPanel.classList.remove('d-none');
+        selectedSeatsLabel.textContent = selected.join(', ');
+        priceLabel.textContent = '$ ' + totalPrice.toLocaleString('en-US');
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(summaryPanel, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: 'back.out(1.5)' });
+        }
+      } else {
+        summaryPanel.classList.add('d-none');
+      }
+    };
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', function() {
+        const checked = document.querySelectorAll('.seat-checkbox:checked');
+        if (checked.length > maxSeats) {
+          this.checked = false;
+          const label = this.nextElementSibling;
+          if (label) label.classList.remove('selected');
+          return;
+        }
+        updateSummary();
+      });
+    });
+
+    updateSummary();
+  });
+</script>
+{% endblock %}

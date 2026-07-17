@@ -1,0 +1,89 @@
+{% extends "users/basic.html" %}
+{% block title %}Log In - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="glass-panel p-4 p-md-5 tilt-enabled">
+                <!-- Aurora Glow Icon -->
+                <div class="text-center mb-4">
+                    <div class="glow-ring mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15)); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user-circle fa-3x" style="background: var(--gradient-aurora); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    </div>
+                    <h2 class="text-white font-weight-bold mb-1">Welcome Back</h2>
+                    <p style="color: var(--text-muted); font-size: 14px;">Log in to book tickets and manage reservations.</p>
+                </div>
+                
+                <form method="POST" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Username Input -->
+                    <div class="form-group mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="mb-2" style="color: var(--text-muted); font-size: 14px; font-weight: 500;">Username</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text form-glass border-right-0 rounded-right-0" style="background: rgba(255,255,255,0.01);">
+                                    <i class="fas fa-user" style="color: var(--accent-violet);"></i>
+                                </span>
+                            </div>
+                            <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control form-glass rounded-left-0" placeholder="Enter username" required>
+                        </div>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="form-group mb-4">
+                        <label for="{{ form.password.id_for_label }}" class="mb-2" style="color: var(--text-muted); font-size: 14px; font-weight: 500;">Password</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text form-glass border-right-0 rounded-right-0" style="background: rgba(255,255,255,0.01);">
+                                    <i class="fas fa-lock" style="color: var(--accent-pink);"></i>
+                                </span>
+                            </div>
+                            <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control form-glass rounded-left-0 border-right-0" placeholder="Enter password" required>
+                            <div class="input-group-append">
+                                <button class="btn form-glass border-left-0 rounded-left-0" type="button" id="togglePassword">
+                                    <i class="fas fa-eye" style="color: var(--text-dim);" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-premium-primary btn-block btn-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i> Login
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="neon-separator" style="margin: 24px 0;">
+                
+                <div class="text-center">
+                    <a href="{% url 'password_reset' %}" style="color: var(--text-muted); font-size: 13px;">Forgot Password?</a>
+                    <p class="mb-0 mt-3" style="font-size: 14px; color: var(--text-muted);">
+                        Don't have an account? <a href="{% url 'register' %}" style="color: var(--accent-violet); font-weight: 600;">Sign Up</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        if (togglePassword && passwordField) {
+            togglePassword.addEventListener('click', () => {
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+                toggleIcon.classList.toggle('fa-eye');
+                toggleIcon.classList.toggle('fa-eye-slash');
+            });
+        }
+    });
+</script>
+{% endblock %}

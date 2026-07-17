@@ -1,0 +1,217 @@
+{% extends "users/basic.html" %}
+{% block title %}Browse Movies - BookMySeat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="text-white mb-2 text-gradient-aurora" style="font-weight: 900; font-size: 2.5rem;">Discover Movies</h1>
+  <p class="mb-5" style="color: var(--text-muted); font-size: 15px;">Browse, filter and book your favorite films instantly.</p>
+
+  <!-- Search & Sorting Row -->
+  <div class="row mb-5 align-items-center">
+    <div class="col-md-8 mb-3 mb-md-0">
+      <form method="GET" action="{% url 'movie_list' %}" class="m-0">
+        <!-- Preserve existing filters in search form -->
+        {% for gid in selected_genres %}
+          <input type="hidden" name="genres" value="{{ gid }}">
+        {% endfor %}
+        {% for lid in selected_languages %}
+          <input type="hidden" name="languages" value="{{ lid }}">
+        {% endfor %}
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        
+        <div class="input-group" style="border-radius: 14px; overflow: hidden;">
+          <input
+            class="form-control form-glass"
+            name="search"
+            placeholder="Search for Movies, Cast, or Description..."
+            type="text"
+            value="{{ search_query }}"
+            aria-label="Search"
+            style="border-radius: 14px 0 0 14px !important;"
+          />
+          <div class="input-group-append">
+            <button class="btn btn-premium-primary" type="submit" style="border-radius: 0 14px 14px 0 !important;">
+              <i class="fas fa-search mr-2"></i> Search
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <div class="col-md-4 text-md-right">
+      <div class="d-inline-flex align-items-center">
+        <span class="mr-3 text-nowrap" style="color: var(--text-dim); font-size: 13px;">
+          <i class="fas fa-sort mr-1" style="color: var(--accent-violet);"></i> Sort:
+        </span>
+        <select id="sortSelector" class="form-control form-glass" style="width: auto; font-size: 13px; height: auto; min-height: 36px; padding: 5px 10px;">
+          <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Alphabetical</option>
+          <option value="rating_desc" {% if sort_by == 'rating_desc' %}selected{% endif %}>Highest Rating</option>
+          <option value="rating_asc" {% if sort_by == 'rating_asc' %}selected{% endif %}>Lowest Rating</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Filter Sidebar -->
+    <div class="col-lg-3 mb-4 mb-lg-0">
+      <form id="filterForm" method="GET" action="{% url 'movie_list' %}">
+        <input type="hidden" name="search" value="{{ search_query }}">
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+
+        <!-- Genre Facets -->
+        <div class="glass-panel p-4 mb-4">
+          <h5 class="text-white mb-3" style="font-weight: 700; font-size: 16px;">
+            <i class="fas fa-tags mr-2" style="color: var(--accent-pink);"></i> Genres
+          </h5>
+          <hr class="neon-separator" style="margin: 8px 0 16px;">
+          {% for genre in genre_facets %}
+            <div class="custom-control custom-checkbox mb-2">
+              <input 
+                type="checkbox" 
+                class="custom-control-input filter-checkbox" 
+                name="genres" 
+                value="{{ genre.id }}" 
+                id="genre-{{ genre.id }}"
+                {% if genre.id in selected_genres %}checked{% endif %}
+              >
+              <label class="custom-control-label" for="genre-{{ genre.id }}" style="font-size: 14px; color: var(--text-muted); cursor: pointer;">
+                {{ genre.name }} <span class="badge-glass py-0 px-2 ml-1" style="font-size: 11px;">{{ genre.movie_count }}</span>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Language Facets -->
+        <div class="glass-panel p-4">
+          <h5 class="text-white mb-3" style="font-weight: 700; font-size: 16px;">
+            <i class="fas fa-language mr-2" style="color: var(--accent-cyan);"></i> Languages
+          </h5>
+          <hr class="neon-separator" style="margin: 8px 0 16px;">
+          {% for lang in lang_facets %}
+            <div class="custom-control custom-checkbox mb-2">
+              <input 
+                type="checkbox" 
+                class="custom-control-input filter-checkbox" 
+                name="languages" 
+                value="{{ lang.id }}" 
+                id="lang-{{ lang.id }}"
+                {% if lang.id in selected_languages %}checked{% endif %}
+              >
+              <label class="custom-control-label" for="lang-{{ lang.id }}" style="font-size: 14px; color: var(--text-muted); cursor: pointer;">
+                {{ lang.name }} <span class="badge-glass py-0 px-2 ml-1" style="font-size: 11px;">{{ lang.movie_count }}</span>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      </form>
+    </div>
+
+    <!-- Movies Grid List -->
+    <div class="col-lg-9">
+      <div class="row" id="movieList">
+        {% for movie in page_obj %}
+          <div class="col-md-6 mb-4 card-item">
+            <div class="card-movie h-100 d-flex flex-column">
+              {% if movie.image %}
+                <div style="overflow: hidden; border-radius: 20px 20px 0 0;">
+                  <img src="{{ movie.image.url }}" class="card-img-top" alt="{{ movie.name }}" style="height: 280px; object-fit: cover;">
+                </div>
+              {% else %}
+                <div class="d-flex align-items-center justify-content-center" style="height: 280px; border-radius: 20px 20px 0 0; background: linear-gradient(135deg, rgba(236,72,153,0.1), rgba(6,182,212,0.1)); border-bottom: 1px solid var(--glass-border);">
+                  <i class="fas fa-image fa-3x" style="color: var(--text-dim); opacity: 0.5;"></i>
+                </div>
+              {% endif %}
+              <div class="card-body p-4 d-flex flex-column justify-content-between flex-grow-1" style="position: relative; z-index: 2;">
+                <div>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="card-movie-title mb-0">{{ movie.name }}</h4>
+                    <span class="card-movie-rating"><i class="fas fa-star mr-1"></i> {{ movie.rating }}</span>
+                  </div>
+                  <p class="mb-4" style="font-size: 13.5px; line-height: 1.6; color: var(--text-muted);">
+                    {{ movie.description|truncatewords:20|default:"Enjoy the latest blockbuster screening near you!" }}
+                  </p>
+                </div>
+                
+                <div class="d-flex align-items-center justify-content-between mt-3 pt-3" style="border-top: 1px solid var(--glass-border);">
+                  <span style="font-size: 12.5px; color: var(--text-dim);">
+                    <i class="fas fa-users mr-1"></i> {{ movie.cast|truncatewords:3 }}
+                  </span>
+                  <a href="{% url 'theater_list' movie.id %}" class="btn btn-premium-primary btn-sm px-4" style="font-size: 13px;">
+                    Book Tickets <i class="fas fa-chevron-right ml-2" style="font-size: 10px;"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12 text-center py-5">
+            <div class="glass-panel p-5">
+              <div class="glow-ring mb-3" style="display: inline-flex;">
+                <i class="fas fa-search-minus fa-3x" style="color: var(--text-dim);"></i>
+              </div>
+              <p class="lead mb-0" style="color: var(--text-muted);">No movies match your active filter categories or search query.</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination Links -->
+      {% if page_obj.has_other_pages %}
+        <nav class="mt-5">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link form-glass text-white border-0 mr-2 px-3" href="?page={{ page_obj.previous_page_number }}{% if pagination_query_string %}&{{ pagination_query_string }}{% endif %}" style="border-radius: 10px;">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="page-item active">
+                  <span class="page-link border-0 mr-2 px-3" style="background: var(--gradient-aurora); border-radius: 10px;">{{ num }}</span>
+                </li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                  <a class="page-link form-glass text-white border-0 mr-2 px-3" href="?page={{ num }}{% if pagination_query_string %}&{{ pagination_query_string }}{% endif %}" style="border-radius: 10px;">{{ num }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link form-glass text-white border-0 px-3" href="?page={{ page_obj.next_page_number }}{% if pagination_query_string %}&{{ pagination_query_string }}{% endif %}" style="border-radius: 10px;">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterForm = document.getElementById('filterForm');
+    const sortSelector = document.getElementById('sortSelector');
+
+    // Auto submit filters
+    document.querySelectorAll('.filter-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => filterForm.submit());
+    });
+
+    // Auto submit sorting
+    if (sortSelector) {
+      sortSelector.addEventListener('change', (e) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('sort', e.target.value);
+        window.location.search = urlParams.toString();
+      });
+    }
+  });
+</script>
+{% endblock %}
