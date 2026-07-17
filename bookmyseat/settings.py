@@ -24,8 +24,8 @@ SECRET_KEY = 'django-insecure-c8aetlj(=vp90n@#yoc^&d(_6ivp(d!bv-4-f!r$lawptjzrwu
 DEBUG = True
 
 # Mukkiyam: Localhost add panniruken, appo thaan browser la site open aagum
-ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', 'localhost']
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
+ALLOWED_HOSTS = ['.vercel.app', '.onrender.com', '127.0.0.1', 'localhost']
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000', 'https://*.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
