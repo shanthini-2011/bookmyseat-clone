@@ -93,11 +93,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bookmyseat.wsgi.application'
 
-# Use Vercel Postgres if available, else fallback to SQLite
-if os.environ.get('POSTGRES_URL'):
+# Use Vercel Postgres or Neon if available, else fallback to SQLite
+db_url = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL')
+if db_url:
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.environ.get('POSTGRES_URL'),
+            default=db_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
